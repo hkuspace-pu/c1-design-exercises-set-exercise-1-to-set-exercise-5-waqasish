@@ -1,0 +1,15 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <style name="Base.Theme.RestaurantManagementApplication" parent="Theme.Material3.DayNight.NoActionBar">
+    </style>
+
+    <style name="Theme.RestaurantManagementApplication" parent="Base.Theme.RestaurantManagementApplication" />
+
+    <!-- THIS IS THE ONLY STYLE YOU NEED -->
+    <style name="OrangeButton" parent="Widget.Material3.Button">
+        <item name="android:textColor">#FFFFFF</item>
+        <item name="backgroundTint">#FF6B35</item>   <!-- HARD-CODED COLOR — NO @color reference -->
+        <item name="cornerRadius">28dp</item>
+    </style>
+
+</resources>

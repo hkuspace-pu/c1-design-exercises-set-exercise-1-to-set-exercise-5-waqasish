@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="background">#FFFAF5</color>
+    <color name="gray_text">#666666</color>
+    <color name="orange_main">#FF6B35</color>
+</resources>

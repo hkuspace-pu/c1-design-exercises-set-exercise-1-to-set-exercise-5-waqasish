@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="32dp"
+    android:background="#FFFAF5">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Bella Vista"
+        android:textSize="42sp"
+        android:textStyle="bold"
+        android:textColor="#FF6B35"
+        android:layout_marginBottom="12dp"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Welcome!"
+        android:textSize="30sp"
+        android:textColor="#333333"
+        android:layout_marginBottom="8dp"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Please select your role"
+        android:textSize="18sp"
+        android:textColor="#666666"
+        android:layout_marginBottom="80dp"/>
+
+    <!-- Clickable for prtotype -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnStaff"
+        android:layout_width="300dp"
+        android:layout_height="68dp"
+        android:text="I am Staff"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textAllCaps="false"
+        android:textColor="@android:color/white"
+        android:backgroundTint="#FF6B35"
+        app:cornerRadius="34dp"
+        android:layout_marginBottom="24dp"
+        android:onClick="openStaffLogin"/>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnGuest"
+        android:layout_width="300dp"
+        android:layout_height="68dp"
+        android:text="I am Guest"
+        android:textSize="20sp"
+        android:textAllCaps="false"
+        android:textColor="#FF6B35"
+        app:strokeColor="#FF6B35"
+        app:strokeWidth="3dp"
+        app:cornerRadius="34dp"
+        style="@style/Widget.Material3.Button.OutlinedButton"/>
+</LinearLayout>

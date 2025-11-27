@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- HOME - Takes you to Today's Reservations -->
+    <item
+        android:id="@+id/nav_home"
+        android:title="Home"
+        android:icon="@android:drawable/ic_menu_myplaces" />
+
+    <!-- Food Menu Manage -->
+    <item
+        android:id="@+id/nav_food"
+        android:title="Food Menu"
+        android:icon="@android:drawable/ic_menu_manage" />
+
+    <!-- Reservations (current screen) -->
+    <item
+        android:id="@+id/nav_reservations"
+        android:title="Reservations"
+        android:icon="@android:drawable/ic_menu_today" />
+
+    <!-- Settings -->
+    <item
+        android:id="@+id/nav_settings"
+        android:title="Settings"
+        android:icon="@android:drawable/ic_menu_preferences" />
+
+</menu>
