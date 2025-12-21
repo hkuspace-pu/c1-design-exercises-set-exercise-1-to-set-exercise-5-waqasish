@@ -11,9 +11,16 @@ import java.util.ArrayList;
 public class ReservationAdapter extends RecyclerView.Adapter<ReservationAdapter.ViewHolder> {
 
     private ArrayList<Reservation> list;
+    private OnReservationActionListener listener;
 
-    public ReservationAdapter(ArrayList<Reservation> list) {
+    public interface OnReservationActionListener {
+        void onEditClick(Reservation reservation);
+        void onDeleteClick(Reservation reservation);
+    }
+
+    public ReservationAdapter(ArrayList<Reservation> list, OnReservationActionListener listener) {
         this.list = list;
+        this.listener = listener;
     }
 
     @NonNull
@@ -30,18 +37,38 @@ public class ReservationAdapter extends RecyclerView.Adapter<ReservationAdapter.
         h.tvDateTime.setText(r.dateTime);
         h.tvName.setText(r.name);
         h.tvTable.setText(r.table);
+
+        h.tvEdit.setOnClickListener(v -> {
+            if (listener != null) {
+                listener.onEditClick(r);
+            }
+        });
+
+        h.tvCancel.setOnClickListener(v -> {
+            if (listener != null) {
+                listener.onDeleteClick(r);
+            }
+        });
     }
 
     @Override
     public int getItemCount() { return list.size(); }
 
+    public void updateList(ArrayList<Reservation> newList) {
+        this.list = newList;
+        notifyDataSetChanged();
+    }
+
     public static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView tvDateTime, tvName, tvTable;
+        TextView tvDateTime, tvName, tvTable, tvEdit, tvCancel;
+        
         public ViewHolder(@NonNull View v) {
             super(v);
             tvDateTime = v.findViewById(R.id.tvDateTime);
             tvName = v.findViewById(R.id.tvName);
             tvTable = v.findViewById(R.id.tvTable);
+            tvEdit = v.findViewById(R.id.tvEdit);
+            tvCancel = v.findViewById(R.id.tvCancel);
         }
     }
 }

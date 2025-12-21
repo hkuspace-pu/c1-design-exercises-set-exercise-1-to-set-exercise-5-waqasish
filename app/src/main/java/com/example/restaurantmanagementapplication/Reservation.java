@@ -1,6 +1,7 @@
 package com.example.restaurantmanagementapplication;
 
 public class Reservation {
+    public int id;
     public String dateTime, name, table;
 
     public Reservation(String dateTime, String name, String table) {

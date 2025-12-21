@@ -59,6 +59,7 @@
             android:layout_marginTop="16dp">
 
             <TextView
+                android:id="@+id/tvEdit"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Edit"
@@ -66,16 +67,21 @@
                 android:textStyle="bold"
                 android:padding="12dp"
                 android:background="@drawable/rounded_orange_border"
-                android:layout_marginEnd="12dp" />
+                android:layout_marginEnd="12dp"
+                android:clickable="true"
+                android:focusable="true" />
 
             <TextView
+                android:id="@+id/tvCancel"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Cancel"
                 android:textColor="#FF0000"
                 android:textStyle="bold"
                 android:padding="12dp"
-                android:background="@drawable/rounded_red_border" />
+                android:background="@drawable/rounded_red_border"
+                android:clickable="true"
+                android:focusable="true" />
         </LinearLayout>
     </LinearLayout>
 </androidx.cardview.widget.CardView>

@@ -12,9 +12,16 @@ import java.util.ArrayList;
 public class FoodMenuAdapter extends RecyclerView.Adapter<FoodMenuAdapter.ViewHolder> {
 
     private ArrayList<FoodItem> list;
+    private OnFoodItemActionListener listener;
 
-    public FoodMenuAdapter(ArrayList<FoodItem> list) {
+    public interface OnFoodItemActionListener {
+        void onEditClick(FoodItem item);
+        void onDeleteClick(FoodItem item);
+    }
+
+    public FoodMenuAdapter(ArrayList<FoodItem> list, OnFoodItemActionListener listener) {
         this.list = list;
+        this.listener = listener;
     }
 
     @NonNull
@@ -37,14 +44,33 @@ public class FoodMenuAdapter extends RecyclerView.Adapter<FoodMenuAdapter.ViewHo
                 .getIdentifier(item.imageName, "drawable", holder.itemView.getContext().getPackageName());
         if (imageRes != 0) {
             holder.ivImage.setImageResource(imageRes);
+        } else {
+            holder.ivImage.setImageResource(R.drawable.placeholder_food);
         }
+
+        holder.tvEdit.setOnClickListener(v -> {
+            if (listener != null) {
+                listener.onEditClick(item);
+            }
+        });
+
+        holder.tvDelete.setOnClickListener(v -> {
+            if (listener != null) {
+                listener.onDeleteClick(item);
+            }
+        });
+    }
+
+    public void updateList(ArrayList<FoodItem> newList) {
+        this.list = newList;
+        notifyDataSetChanged();
     }
 
     @Override
     public int getItemCount() { return list.size(); }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView tvName, tvDesc, tvPrice;
+        TextView tvName, tvDesc, tvPrice, tvEdit, tvDelete;
         ImageView ivImage;
 
         public ViewHolder(@NonNull View itemView) {
@@ -53,6 +79,8 @@ public class FoodMenuAdapter extends RecyclerView.Adapter<FoodMenuAdapter.ViewHo
             tvName = itemView.findViewById(R.id.tvFoodName);
             tvDesc = itemView.findViewById(R.id.tvFoodDescription);
             tvPrice = itemView.findViewById(R.id.tvFoodPrice);
+            tvEdit = itemView.findViewById(R.id.tvEdit);
+            tvDelete = itemView.findViewById(R.id.tvDelete);
         }
     }
 }

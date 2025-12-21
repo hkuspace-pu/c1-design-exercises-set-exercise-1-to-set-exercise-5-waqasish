@@ -1,6 +1,7 @@
 package com.example.restaurantmanagementapplication;
 
 public class FoodItem {
+    public int id;
     public String name, description, imageName;
     public int priceHKD;
 
