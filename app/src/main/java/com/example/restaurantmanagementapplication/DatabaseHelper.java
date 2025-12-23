@@ -12,7 +12,8 @@ import java.util.Locale;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String DATABASE_NAME = "restaurant_db";
-    private static final int DATABASE_VERSION = 1;
+    // Bump version when changing schema
+    private static final int DATABASE_VERSION = 2;
 
     // Users table
     private static final String TABLE_USERS = "users";
@@ -20,6 +21,12 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String COL_USER_EMAIL = "email";
     private static final String COL_USER_PASSWORD = "password";
     private static final String COL_USER_NAME = "name";
+    private static final String COL_USER_FIRST_NAME = "first_name";
+    private static final String COL_USER_LAST_NAME = "last_name";
+    private static final String COL_USER_ADDRESS = "address";
+    private static final String COL_USER_PHONE = "phone";
+    private static final String COL_USER_USERNAME = "username";
+    private static final String COL_USER_ROLE = "role";
 
     // Reservations table
     private static final String TABLE_RESERVATIONS = "reservations";
@@ -48,7 +55,13 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 COL_USER_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
                 COL_USER_EMAIL + " TEXT UNIQUE NOT NULL, " +
                 COL_USER_PASSWORD + " TEXT NOT NULL, " +
-                COL_USER_NAME + " TEXT NOT NULL)";
+                COL_USER_NAME + " TEXT NOT NULL, " +
+                COL_USER_FIRST_NAME + " TEXT, " +
+                COL_USER_LAST_NAME + " TEXT, " +
+                COL_USER_ADDRESS + " TEXT, " +
+                COL_USER_PHONE + " TEXT, " +
+                COL_USER_USERNAME + " TEXT UNIQUE, " +
+                COL_USER_ROLE + " TEXT NOT NULL)";
 
         // Create reservations table
         String createReservationsTable = "CREATE TABLE " + TABLE_RESERVATIONS + " (" +
@@ -75,6 +88,12 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         userValues.put(COL_USER_EMAIL, "staff@bellavista.com");
         userValues.put(COL_USER_PASSWORD, "staff123");
         userValues.put(COL_USER_NAME, "Staff Member");
+        userValues.put(COL_USER_FIRST_NAME, "Staff");
+        userValues.put(COL_USER_LAST_NAME, "Member");
+        userValues.put(COL_USER_ADDRESS, "");
+        userValues.put(COL_USER_PHONE, "");
+        userValues.put(COL_USER_USERNAME, "staff");
+        userValues.put(COL_USER_ROLE, "staff");
         db.insert(TABLE_USERS, null, userValues);
 
         // Insert sample reservations
@@ -143,6 +162,54 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         cursor.close();
         db.close();
         return result;
+    }
+
+    // Check if a user with this email already exists
+    public boolean isEmailExists(String email) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        String query = "SELECT " + COL_USER_ID + " FROM " + TABLE_USERS + " WHERE " + COL_USER_EMAIL + " = ?";
+        Cursor cursor = db.rawQuery(query, new String[]{email});
+        boolean exists = cursor.moveToFirst();
+        cursor.close();
+        db.close();
+        return exists;
+    }
+
+    // Register a new guest user
+    public long registerGuestUser(String firstName,
+                                  String lastName,
+                                  String address,
+                                  String phone,
+                                  String email,
+                                  String username,
+                                  String password) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        String fullName = (firstName + " " + lastName).trim();
+
+        values.put(COL_USER_EMAIL, email);
+        values.put(COL_USER_PASSWORD, password);
+        values.put(COL_USER_NAME, fullName);
+        values.put(COL_USER_FIRST_NAME, firstName);
+        values.put(COL_USER_LAST_NAME, lastName);
+        values.put(COL_USER_ADDRESS, address);
+        values.put(COL_USER_PHONE, phone);
+        values.put(COL_USER_USERNAME, username);
+        values.put(COL_USER_ROLE, "guest");
+
+        long id = db.insert(TABLE_USERS, null, values);
+        db.close();
+        return id;
+    }
+
+    // Update password for a user identified by email
+    public boolean updatePasswordByEmail(String email, String newPassword) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(COL_USER_PASSWORD, newPassword);
+        int rows = db.update(TABLE_USERS, values, COL_USER_EMAIL + " = ?", new String[]{email});
+        db.close();
+        return rows > 0;
     }
 
     // Reservation methods

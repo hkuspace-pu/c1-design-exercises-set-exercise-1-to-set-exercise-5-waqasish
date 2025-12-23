@@ -13,16 +13,13 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_welcome);   // ← This shows your welcome screen
     }
 
-
     public void openStaffLogin(View view) {
         startActivity(new Intent(MainActivity.this, StaffLoginActivity.class));
         overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
     }
 
-
-    public void openStaffHome(View view) {
-        startActivity(new Intent(MainActivity.this, StaffHomeActivity.class));
+    public void openGuestLogin(View view) {
+        startActivity(new Intent(MainActivity.this, GuestLoginActivity.class));
         overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
-        finish();
     }
 }

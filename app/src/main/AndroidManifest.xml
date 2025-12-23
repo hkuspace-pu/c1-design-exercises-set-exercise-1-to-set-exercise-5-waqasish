@@ -28,6 +28,12 @@
             android:name=".StaffLoginActivity"
             android:exported="false" />
 
+        <!-- Guest flows -->
+        <activity android:name=".GuestLoginActivity" />
+        <activity android:name=".GuestRegisterActivity" />
+        <activity android:name=".GuestForgotPasswordActivity" />
+        <activity android:name=".GuestHomeActivity" />
+
         <!-- Staff Dashboard (Reservations & Home) -->
         <activity
             android:name=".StaffHomeActivity"
