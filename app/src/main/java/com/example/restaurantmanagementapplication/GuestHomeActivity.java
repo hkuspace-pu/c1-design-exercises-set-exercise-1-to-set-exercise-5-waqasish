@@ -75,8 +75,11 @@ public class GuestHomeActivity extends AppCompatActivity {
             int id = item.getItemId();
 
             if (id == R.id.nav_food_menu) {
-                // TODO: Navigate to Food Menu screen
-                Toast.makeText(this, "Food Menu - Coming soon", Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(this, GuestFoodMenuActivity.class);
+                intent.putExtra("user_email", userEmail);
+                startActivity(intent);
+                overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+                finish();
                 return true;
             }
             if (id == R.id.nav_make_reservation) {

@@ -33,6 +33,7 @@
         <activity android:name=".GuestRegisterActivity" />
         <activity android:name=".GuestForgotPasswordActivity" />
         <activity android:name=".GuestHomeActivity" />
+        <activity android:name=".GuestFoodMenuActivity" />
 
         <!-- Staff Dashboard (Reservations & Home) -->
         <activity
