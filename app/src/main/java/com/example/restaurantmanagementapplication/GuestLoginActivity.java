@@ -76,6 +76,7 @@ public class GuestLoginActivity extends AppCompatActivity {
         if (dbHelper.authenticateUser(email, password)) {
             Toast.makeText(this, "Login successful", Toast.LENGTH_SHORT).show();
             Intent intent = new Intent(GuestLoginActivity.this, GuestHomeActivity.class);
+            intent.putExtra("user_email", email);
             startActivity(intent);
             overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
             finish();

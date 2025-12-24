@@ -1,28 +1,172 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:gravity="center"
-    android:padding="32dp"
     android:background="#FFFAF5">
 
-    <TextView
-        android:layout_width="wrap_content"
+    <!-- Orange Header -->
+    <RelativeLayout
+        android:id="@+id/orangeHeader"
+        android:layout_width="match_parent"
+        android:layout_height="260dp"
+        android:background="#FF6B35">
+
+        <!-- Hamburger Menu Icon -->
+        <ImageButton
+            android:id="@+id/btnMenu"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_alignParentStart="true"
+            android:layout_alignParentTop="true"
+            android:layout_margin="16dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_menu_view"
+            android:tint="@android:color/white"
+            android:contentDescription="Menu" />
+    </RelativeLayout>
+
+    <!-- Title Card -->
+    <androidx.cardview.widget.CardView
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Welcome, Guest!"
-        android:textColor="#FF6B35"
-        android:textSize="28sp"
+        android:layout_marginHorizontal="28dp"
+        android:layout_marginTop="90dp"
+        app:cardCornerRadius="32dp"
+        app:cardElevation="20dp"
+        app:cardBackgroundColor="@android:color/white">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="32dp"
+            android:gravity="center">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="YOUR RESERVATIONS"
+                android:textSize="28sp"
+                android:textStyle="bold"
+                android:textColor="#FF6B35" />
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
+    <!-- Reservations Table Container -->
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginTop="220dp"
+        android:layout_marginBottom="180dp"
+        android:layout_marginHorizontal="32dp"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@android:color/white"
+            android:elevation="12dp"
+            android:padding="16dp"
+            android:layout_margin="8dp">
+
+            <!-- Table Header -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="12dp"
+                android:background="#FF6B35"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="DATE"
+                    android:textColor="@android:color/white"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:gravity="center" />
+
+                <View
+                    android:layout_width="1dp"
+                    android:layout_height="match_parent"
+                    android:background="@android:color/white" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="TIME"
+                    android:textColor="@android:color/white"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:gravity="center" />
+
+                <View
+                    android:layout_width="1dp"
+                    android:layout_height="match_parent"
+                    android:background="@android:color/white" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="TABLE NO"
+                    android:textColor="@android:color/white"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:gravity="center" />
+            </LinearLayout>
+
+            <!-- Reservations List -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvGuestReservations"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
+            <!-- Empty State -->
+            <TextView
+                android:id="@+id/tvEmptyReservations"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="No reservations found"
+                android:textColor="#666666"
+                android:textSize="16sp"
+                android:gravity="center"
+                android:padding="32dp"
+                android:visibility="gone" />
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <!-- Make Reservation Button -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnMakeReservation"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="32dp"
+        android:layout_marginBottom="100dp"
+        android:text="MAKE A RESERVATION"
+        android:textSize="18sp"
         android:textStyle="bold"
-        android:layout_marginBottom="12dp" />
+        android:textAllCaps="true"
+        android:textColor="@android:color/white"
+        android:backgroundTint="#FF6B35"
+        app:cornerRadius="8dp"
+        app:layout_anchor="@id/bottomNavigation"
+        app:layout_anchorGravity="top|center_horizontal" />
 
-    <TextView
-        android:layout_width="wrap_content"
+    <!-- Bottom Navigation -->
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottomNavigation"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="You are now logged in as a guest."
-        android:textColor="#666666"
-        android:textSize="16sp" />
+        android:layout_gravity="bottom"
+        android:background="@android:color/white"
+        app:itemIconTint="#FF6B35"
+        app:itemTextColor="#FF6B35"
+        app:menu="@menu/guest_bottom_menu" />
 
-</LinearLayout>
-
-
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

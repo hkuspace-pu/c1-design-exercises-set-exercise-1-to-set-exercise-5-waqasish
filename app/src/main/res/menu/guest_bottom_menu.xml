@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Food Menu -->
+    <item
+        android:id="@+id/nav_food_menu"
+        android:title="Food Menu"
+        android:icon="@android:drawable/ic_menu_manage" />
+
+    <!-- Make Reservation -->
+    <item
+        android:id="@+id/nav_make_reservation"
+        android:title="Make Reservation"
+        android:icon="@android:drawable/ic_menu_today" />
+
+    <!-- Manage Reservation -->
+    <item
+        android:id="@+id/nav_manage_reservation"
+        android:title="Manage Reservation"
+        android:icon="@android:drawable/ic_menu_revert" />
+
+    <!-- Settings -->
+    <item
+        android:id="@+id/nav_setting"
+        android:title="Setting"
+        android:icon="@android:drawable/ic_menu_preferences" />
+
+</menu>
+

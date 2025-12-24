@@ -317,6 +317,45 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return reservation;
     }
 
+    // Get reservations by customer name
+    public ArrayList<Reservation> getReservationsByCustomerName(String customerName) {
+        ArrayList<Reservation> reservations = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+        String query = "SELECT * FROM " + TABLE_RESERVATIONS + " WHERE " +
+                COL_RESERVATION_NAME + " = ? ORDER BY " + COL_RESERVATION_DATE + ", " + COL_RESERVATION_TIME;
+        Cursor cursor = db.rawQuery(query, new String[]{customerName});
+
+        if (cursor.moveToFirst()) {
+            do {
+                String dateTime = cursor.getString(cursor.getColumnIndexOrThrow(COL_RESERVATION_DATE)) +
+                        ", " + cursor.getString(cursor.getColumnIndexOrThrow(COL_RESERVATION_TIME));
+                String name = cursor.getString(cursor.getColumnIndexOrThrow(COL_RESERVATION_NAME));
+                String table = cursor.getString(cursor.getColumnIndexOrThrow(COL_RESERVATION_TABLE));
+                int id = cursor.getInt(cursor.getColumnIndexOrThrow(COL_RESERVATION_ID));
+                Reservation reservation = new Reservation(dateTime, name, table);
+                reservation.id = id;
+                reservations.add(reservation);
+            } while (cursor.moveToNext());
+        }
+        cursor.close();
+        db.close();
+        return reservations;
+    }
+
+    // Get user name by email
+    public String getUserNameByEmail(String email) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        String query = "SELECT " + COL_USER_NAME + " FROM " + TABLE_USERS + " WHERE " + COL_USER_EMAIL + " = ?";
+        Cursor cursor = db.rawQuery(query, new String[]{email});
+        String name = null;
+        if (cursor.moveToFirst()) {
+            name = cursor.getString(cursor.getColumnIndexOrThrow(COL_USER_NAME));
+        }
+        cursor.close();
+        db.close();
+        return name;
+    }
+
     // Food Item methods
     public long addFoodItem(String name, String description, String imageName, int price) {
         SQLiteDatabase db = this.getWritableDatabase();
