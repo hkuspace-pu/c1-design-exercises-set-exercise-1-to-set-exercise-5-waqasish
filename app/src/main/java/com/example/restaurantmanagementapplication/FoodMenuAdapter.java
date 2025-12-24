@@ -1,5 +1,7 @@
 package com.example.restaurantmanagementapplication;
 
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -7,6 +9,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+import java.io.File;
 import java.util.ArrayList;
 
 public class FoodMenuAdapter extends RecyclerView.Adapter<FoodMenuAdapter.ViewHolder> {
@@ -39,11 +42,31 @@ public class FoodMenuAdapter extends RecyclerView.Adapter<FoodMenuAdapter.ViewHo
         holder.tvDesc.setText(item.description);
         holder.tvPrice.setText("HK$ " + item.priceHKD);
 
-
-        int imageRes = holder.itemView.getContext().getResources()
-                .getIdentifier(item.imageName, "drawable", holder.itemView.getContext().getPackageName());
-        if (imageRes != 0) {
-            holder.ivImage.setImageResource(imageRes);
+        // Load image - check if it's a file path or drawable name
+        if (item.imageName != null && !item.imageName.isEmpty()) {
+            if (item.imageName.startsWith("/")) {
+                // It's a file path
+                File imageFile = new File(item.imageName);
+                if (imageFile.exists()) {
+                    Bitmap bitmap = BitmapFactory.decodeFile(imageFile.getAbsolutePath());
+                    if (bitmap != null) {
+                        holder.ivImage.setImageBitmap(bitmap);
+                    } else {
+                        holder.ivImage.setImageResource(R.drawable.placeholder_food);
+                    }
+                } else {
+                    holder.ivImage.setImageResource(R.drawable.placeholder_food);
+                }
+            } else {
+                // It's a drawable name
+                int imageRes = holder.itemView.getContext().getResources()
+                        .getIdentifier(item.imageName, "drawable", holder.itemView.getContext().getPackageName());
+                if (imageRes != 0) {
+                    holder.ivImage.setImageResource(imageRes);
+                } else {
+                    holder.ivImage.setImageResource(R.drawable.placeholder_food);
+                }
+            }
         } else {
             holder.ivImage.setImageResource(R.drawable.placeholder_food);
         }

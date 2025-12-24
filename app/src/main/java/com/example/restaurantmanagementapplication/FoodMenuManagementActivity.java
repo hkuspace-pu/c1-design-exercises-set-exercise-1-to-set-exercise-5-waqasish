@@ -1,17 +1,31 @@
 package com.example.restaurantmanagementapplication;
 
 import android.app.AlertDialog;
+import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.material.button.MaterialButton;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 
 public class FoodMenuManagementActivity extends AppCompatActivity implements FoodMenuAdapter.OnFoodItemActionListener {
@@ -21,6 +35,9 @@ public class FoodMenuManagementActivity extends AppCompatActivity implements Foo
     private DatabaseHelper dbHelper;
     private FoodMenuAdapter adapter;
     private ArrayList<FoodItem> foodItems;
+    private ActivityResultLauncher<Intent> imagePickerLauncher;
+    private String selectedImagePath = null;
+    private ImageView currentImagePreview = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,6 +52,28 @@ public class FoodMenuManagementActivity extends AppCompatActivity implements Foo
         loadFoodItems();
 
         fabAddItem.setOnClickListener(v -> showAddFoodItemDialog(null));
+
+        // Initialize image picker launcher
+        imagePickerLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                    Uri imageUri = result.getData().getData();
+                    if (imageUri != null && currentImagePreview != null) {
+                        try {
+                            // Save image to internal storage
+                            selectedImagePath = saveImageToInternalStorage(imageUri);
+                            Bitmap bitmap = BitmapFactory.decodeFile(selectedImagePath);
+                            if (bitmap != null) {
+                                currentImagePreview.setImageBitmap(bitmap);
+                            }
+                        } catch (IOException e) {
+                            Toast.makeText(this, "Failed to load image", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                }
+            }
+        );
 
         BottomNavigationView bottomNav = findViewById(R.id.bottomNavigation);
         bottomNav.setSelectedItemId(R.id.nav_food);
@@ -68,6 +107,36 @@ public class FoodMenuManagementActivity extends AppCompatActivity implements Foo
         });
     }
 
+    private String saveImageToInternalStorage(Uri imageUri) throws IOException {
+        InputStream inputStream = getContentResolver().openInputStream(imageUri);
+        if (inputStream == null) {
+            throw new IOException("Cannot open input stream");
+        }
+
+        // Create images directory if it doesn't exist
+        File imagesDir = new File(getFilesDir(), "food_images");
+        if (!imagesDir.exists()) {
+            imagesDir.mkdirs();
+        }
+
+        // Generate unique filename
+        String fileName = "food_" + System.currentTimeMillis() + ".jpg";
+        File imageFile = new File(imagesDir, fileName);
+
+        // Copy image to internal storage
+        FileOutputStream outputStream = new FileOutputStream(imageFile);
+        byte[] buffer = new byte[1024];
+        int length;
+        while ((length = inputStream.read(buffer)) > 0) {
+            outputStream.write(buffer, 0, length);
+        }
+        outputStream.close();
+        inputStream.close();
+
+        return imageFile.getAbsolutePath();
+    }
+
+
     private void loadFoodItems() {
         foodItems = dbHelper.getAllFoodItems();
         adapter = new FoodMenuAdapter(foodItems, this);
@@ -75,36 +144,76 @@ public class FoodMenuManagementActivity extends AppCompatActivity implements Foo
     }
 
     private void showAddFoodItemDialog(FoodItem foodItem) {
+        selectedImagePath = null;
         View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_add_food_item, null);
         
+        TextView tvDialogTitle = dialogView.findViewById(R.id.tvDialogTitle);
         TextInputEditText etName = dialogView.findViewById(R.id.etFoodName);
         TextInputEditText etDescription = dialogView.findViewById(R.id.etFoodDescription);
-        TextInputEditText etImageName = dialogView.findViewById(R.id.etFoodImageName);
+        ImageView ivFoodImagePreview = dialogView.findViewById(R.id.ivFoodImagePreview);
+        MaterialButton btnSelectImage = dialogView.findViewById(R.id.btnSelectImage);
         TextInputEditText etPrice = dialogView.findViewById(R.id.etFoodPrice);
         
         TextInputLayout tilName = dialogView.findViewById(R.id.tilFoodName);
         TextInputLayout tilDescription = dialogView.findViewById(R.id.tilFoodDescription);
-        TextInputLayout tilImageName = dialogView.findViewById(R.id.tilFoodImageName);
         TextInputLayout tilPrice = dialogView.findViewById(R.id.tilFoodPrice);
+
+        MaterialButton btnCancel = dialogView.findViewById(R.id.btnCancelFoodItem);
+        MaterialButton btnSave = dialogView.findViewById(R.id.btnSaveFoodItem);
 
         boolean isEdit = foodItem != null;
         String dialogTitle = isEdit ? "Edit Food Item" : "Add Food Item";
+        tvDialogTitle.setText(dialogTitle);
         
         if (isEdit) {
             etName.setText(foodItem.name);
             etDescription.setText(foodItem.description);
-            etImageName.setText(foodItem.imageName);
             etPrice.setText(String.valueOf(foodItem.priceHKD));
+            
+            // Load existing image if available
+            if (foodItem.imageName != null && !foodItem.imageName.isEmpty()) {
+                // Check if it's a file path or drawable name
+                if (foodItem.imageName.startsWith("/")) {
+                    // It's a file path
+                    File imageFile = new File(foodItem.imageName);
+                    if (imageFile.exists()) {
+                        Bitmap bitmap = BitmapFactory.decodeFile(imageFile.getAbsolutePath());
+                        if (bitmap != null) {
+                            ivFoodImagePreview.setImageBitmap(bitmap);
+                            selectedImagePath = foodItem.imageName;
+                        }
+                    }
+                } else {
+                    // It's a drawable name, try to load it
+                    int imageRes = getResources().getIdentifier(foodItem.imageName, "drawable", getPackageName());
+                    if (imageRes != 0) {
+                        ivFoodImagePreview.setImageResource(imageRes);
+                    }
+                }
+            }
         }
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setView(dialogView);
-        builder.setTitle(dialogTitle);
+        // Store reference to image preview for launcher
+        currentImagePreview = ivFoodImagePreview;
 
-        builder.setPositiveButton("Save", (d, which) -> {
+        // Image picker button
+        btnSelectImage.setOnClickListener(v -> {
+            Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+            imagePickerLauncher.launch(intent);
+        });
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(dialogView)
+                .setCancelable(true)
+                .create();
+
+        // Cancel button
+        btnCancel.setOnClickListener(v -> dialog.dismiss());
+
+        // Save button
+        btnSave.setOnClickListener(v -> {
             String name = etName.getText().toString().trim();
             String description = etDescription.getText().toString().trim();
-            String imageName = etImageName.getText().toString().trim();
             String priceStr = etPrice.getText().toString().trim();
 
             // Validate inputs
@@ -121,13 +230,6 @@ public class FoodMenuManagementActivity extends AppCompatActivity implements Foo
                 isValid = false;
             } else {
                 tilDescription.setError(null);
-            }
-
-            if (imageName.isEmpty()) {
-                tilImageName.setError("Image name is required");
-                isValid = false;
-            } else {
-                tilImageName.setError(null);
             }
 
             int price = 0;
@@ -149,31 +251,39 @@ public class FoodMenuManagementActivity extends AppCompatActivity implements Foo
                 }
             }
 
+            // Image is optional, but if not provided and it's a new item, use placeholder
+            String imagePath = selectedImagePath;
+            if (imagePath == null || imagePath.isEmpty()) {
+                if (isEdit && foodItem != null && foodItem.imageName != null) {
+                    // Keep existing image
+                    imagePath = foodItem.imageName;
+                } else {
+                    // Use placeholder
+                    imagePath = "placeholder_food";
+                }
+            }
+
             if (isValid) {
+                dialog.dismiss();
                 if (isEdit) {
-                    if (dbHelper.updateFoodItem(foodItem.id, name, description, imageName, price)) {
+                    if (dbHelper.updateFoodItem(foodItem.id, name, description, imagePath, price)) {
                         Toast.makeText(this, "Food item updated successfully", Toast.LENGTH_SHORT).show();
                         loadFoodItems();
                     } else {
                         Toast.makeText(this, "Failed to update food item", Toast.LENGTH_SHORT).show();
                     }
                 } else {
-                    if (dbHelper.addFoodItem(name, description, imageName, price) > 0) {
+                    if (dbHelper.addFoodItem(name, description, imagePath, price) > 0) {
                         Toast.makeText(this, "Food item added successfully", Toast.LENGTH_SHORT).show();
                         loadFoodItems();
                     } else {
                         Toast.makeText(this, "Failed to add food item", Toast.LENGTH_SHORT).show();
                     }
                 }
-            } else {
-                // Show dialog again with errors
-                d.dismiss();
-                showAddFoodItemDialog(foodItem);
             }
         });
 
-        builder.setNegativeButton("Cancel", (d, which) -> d.dismiss());
-        builder.create().show();
+        dialog.show();
     }
 
     @Override

@@ -8,6 +8,7 @@
     android:background="@android:color/white">
 
     <TextView
+        android:id="@+id/tvDialogTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Add Food Item"
@@ -50,21 +51,35 @@
             android:maxLines="3" />
     </com.google.android.material.textfield.TextInputLayout>
 
-    <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/tilFoodImageName"
-        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+    <!-- Image Upload Section -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Food Image"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:textColor="#333333"
+        android:layout_marginBottom="8dp" />
+
+    <ImageView
+        android:id="@+id/ivFoodImagePreview"
+        android:layout_width="match_parent"
+        android:layout_height="150dp"
+        android:scaleType="centerCrop"
+        android:background="#E0E0E0"
+        android:src="@drawable/placeholder_food"
+        android:layout_marginBottom="8dp" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnSelectImage"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
-        app:hintTextColor="#FF6B35"
-        app:boxStrokeColor="#FF6B35"
-        android:hint="Image Name (e.g., salmon)">
-
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/etFoodImageName"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
-    </com.google.android.material.textfield.TextInputLayout>
+        android:text="Upload Image"
+        android:textSize="14sp"
+        android:backgroundTint="#FF6B35"
+        android:textColor="@android:color/white"
+        app:cornerRadius="8dp"
+        android:layout_marginBottom="16dp" />
 
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/tilFoodPrice"
