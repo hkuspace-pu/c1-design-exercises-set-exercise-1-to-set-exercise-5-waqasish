@@ -2,49 +2,92 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal"
+    android:orientation="vertical"
     android:padding="12dp"
     android:background="?android:attr/selectableItemBackground"
     android:minHeight="48dp">
 
-    <TextView
-        android:id="@+id/tvDate"
-        android:layout_width="0dp"
+    <!-- Date, Time, Table Row -->
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:text="16 Nov, 2025"
-        android:textColor="#333333"
-        android:textSize="14sp"
-        android:gravity="center" />
+        android:orientation="horizontal">
 
-    <View
-        android:layout_width="1dp"
-        android:layout_height="match_parent"
-        android:background="#E0E0E0" />
+        <TextView
+            android:id="@+id/tvDate"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="16 Nov, 2025"
+            android:textColor="#333333"
+            android:textSize="14sp"
+            android:gravity="center" />
 
-    <TextView
-        android:id="@+id/tvTime"
-        android:layout_width="0dp"
+        <View
+            android:layout_width="1dp"
+            android:layout_height="match_parent"
+            android:background="#E0E0E0" />
+
+        <TextView
+            android:id="@+id/tvTime"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="7:30 PM"
+            android:textColor="#333333"
+            android:textSize="14sp"
+            android:gravity="center" />
+
+        <View
+            android:layout_width="1dp"
+            android:layout_height="match_parent"
+            android:background="#E0E0E0" />
+
+        <TextView
+            android:id="@+id/tvTableNo"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Table 3"
+            android:textColor="#333333"
+            android:textSize="14sp"
+            android:gravity="center" />
+    </LinearLayout>
+
+    <!-- Action Buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:text="7:30 PM"
-        android:textColor="#333333"
-        android:textSize="14sp"
-        android:gravity="center" />
+        android:orientation="horizontal"
+        android:gravity="end"
+        android:paddingTop="8dp">
 
-    <View
-        android:layout_width="1dp"
-        android:layout_height="match_parent"
-        android:background="#E0E0E0" />
+        <TextView
+            android:id="@+id/tvEditGuestReservation"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Edit"
+            android:textColor="#FF6B35"
+            android:textStyle="bold"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="6dp"
+            android:background="@drawable/rounded_orange_border"
+            android:layout_marginEnd="8dp"
+            android:clickable="true"
+            android:focusable="true" />
 
-    <TextView
-        android:id="@+id/tvTableNo"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:text="Table 3"
-        android:textColor="#333333"
-        android:textSize="14sp"
-        android:gravity="center" />
+        <TextView
+            android:id="@+id/tvCancelGuestReservation"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Cancel"
+            android:textColor="#FF0000"
+            android:textStyle="bold"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="6dp"
+            android:background="@drawable/rounded_red_border"
+            android:clickable="true"
+            android:focusable="true" />
+    </LinearLayout>
 </LinearLayout>
 

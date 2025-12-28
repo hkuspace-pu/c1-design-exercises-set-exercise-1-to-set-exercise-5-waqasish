@@ -50,13 +50,26 @@
                 android:textColor="#FF6B35" />
         </LinearLayout>
 
-        <!-- Edit and Cancel Buttons -->
+        <!-- Action Buttons -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="end"
             android:layout_marginTop="16dp">
+
+            <TextView
+                android:id="@+id/tvDetail"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Detail"
+                android:textColor="#FF6B35"
+                android:textStyle="bold"
+                android:padding="12dp"
+                android:background="@drawable/rounded_orange_border"
+                android:layout_marginEnd="12dp"
+                android:clickable="true"
+                android:focusable="true" />
 
             <TextView
                 android:id="@+id/tvEdit"

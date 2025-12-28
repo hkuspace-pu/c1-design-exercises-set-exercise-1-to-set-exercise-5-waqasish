@@ -42,8 +42,13 @@ public class GuestFoodMenuActivity extends AppCompatActivity {
                 return true;
             }
             if (id == R.id.nav_make_reservation) {
-                // TODO: Navigate to Make Reservation screen
-                android.widget.Toast.makeText(this, "Make Reservation - Coming soon", android.widget.Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(this, GuestMakeReservationActivity.class);
+                if (userEmail != null) {
+                    intent.putExtra("user_email", userEmail);
+                }
+                startActivity(intent);
+                overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+                finish();
                 return true;
             }
             if (id == R.id.nav_manage_reservation) {

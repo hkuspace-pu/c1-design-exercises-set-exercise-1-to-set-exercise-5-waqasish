@@ -16,7 +16,7 @@ import com.google.android.material.button.MaterialButton;
 
 import java.util.ArrayList;
 
-public class GuestHomeActivity extends AppCompatActivity {
+public class GuestHomeActivity extends AppCompatActivity implements GuestReservationTableAdapter.OnReservationActionListener {
 
     private RecyclerView rvGuestReservations;
     private TextView tvEmptyReservations;
@@ -54,8 +54,10 @@ public class GuestHomeActivity extends AppCompatActivity {
         btnMakeReservation.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // TODO: Navigate to make reservation screen
-                Toast.makeText(GuestHomeActivity.this, "Make Reservation - Coming soon", Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(GuestHomeActivity.this, GuestMakeReservationActivity.class);
+                intent.putExtra("user_email", userEmail);
+                startActivity(intent);
+                overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
             }
         });
 
@@ -83,8 +85,11 @@ public class GuestHomeActivity extends AppCompatActivity {
                 return true;
             }
             if (id == R.id.nav_make_reservation) {
-                // TODO: Navigate to Make Reservation screen
-                Toast.makeText(this, "Make Reservation - Coming soon", Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(this, GuestMakeReservationActivity.class);
+                intent.putExtra("user_email", userEmail);
+                startActivity(intent);
+                overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+                finish();
                 return true;
             }
             if (id == R.id.nav_manage_reservation) {
@@ -116,9 +121,36 @@ public class GuestHomeActivity extends AppCompatActivity {
         } else {
             tvEmptyReservations.setVisibility(View.GONE);
             rvGuestReservations.setVisibility(View.VISIBLE);
-            adapter = new GuestReservationTableAdapter(reservations);
+            adapter = new GuestReservationTableAdapter(reservations, this);
             rvGuestReservations.setAdapter(adapter);
         }
+    }
+
+    @Override
+    public void onEditClick(Reservation reservation) {
+        // Navigate to make reservation page with pre-filled data
+        Intent intent = new Intent(this, GuestMakeReservationActivity.class);
+        intent.putExtra("user_email", userEmail);
+        intent.putExtra("edit_reservation_id", reservation.id);
+        startActivity(intent);
+        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+    }
+
+    @Override
+    public void onCancelClick(Reservation reservation) {
+        new android.app.AlertDialog.Builder(this)
+                .setTitle("Cancel Reservation")
+                .setMessage("Are you sure you want to cancel this reservation?")
+                .setPositiveButton("Yes", (dialog, which) -> {
+                    if (dbHelper.deleteReservation(reservation.id)) {
+                        Toast.makeText(this, "Reservation cancelled", Toast.LENGTH_SHORT).show();
+                        loadReservations();
+                    } else {
+                        Toast.makeText(this, "Failed to cancel reservation", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .setNegativeButton("No", null)
+                .show();
     }
 
     @Override

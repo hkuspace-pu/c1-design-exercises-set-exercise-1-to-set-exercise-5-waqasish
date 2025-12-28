@@ -3,4 +3,6 @@
     <color name="background">#FFFAF5</color>
     <color name="gray_text">#666666</color>
     <color name="orange_main">#FF6B35</color>
+    <color name="orange">#FF6B35</color>
+    <color name="light_orange">#FFF5F0</color>
 </resources>

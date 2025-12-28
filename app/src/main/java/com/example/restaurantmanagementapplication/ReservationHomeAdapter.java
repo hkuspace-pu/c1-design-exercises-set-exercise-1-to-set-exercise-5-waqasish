@@ -30,13 +30,8 @@ public class ReservationHomeAdapter extends RecyclerView.Adapter<ReservationHome
         h.tvName.setText(r.name);
         h.tvTable.setText(r.table);
         
-        // Extract time from dateTime string (format: "16 Nov, 2025, 7:30 PM")
-        String[] parts = r.dateTime.split(", ");
-        if (parts.length >= 2) {
-            h.tvTime.setText(parts[parts.length - 1]); // Get the last part which is the time
-        } else {
-            h.tvTime.setText(r.dateTime);
-        }
+        // Use separate time field
+        h.tvTime.setText(r.time);
     }
 
     @Override

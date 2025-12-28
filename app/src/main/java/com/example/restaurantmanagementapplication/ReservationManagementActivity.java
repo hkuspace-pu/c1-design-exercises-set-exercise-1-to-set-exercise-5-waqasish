@@ -5,11 +5,13 @@ import android.content.DialogInterface;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.material.button.MaterialButton;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
@@ -92,12 +94,9 @@ public class ReservationManagementActivity extends AppCompatActivity implements 
         String dialogTitle = isEdit ? "Edit Reservation" : "Add Reservation";
         
         if (isEdit) {
-            // Parse dateTime to separate date and time
-            String[] parts = reservation.dateTime.split(", ");
-            if (parts.length >= 2) {
-                etDate.setText(parts[0] + ", " + parts[1]);
-                etTime.setText(parts[parts.length - 1]);
-            }
+            // Use separate date and time fields
+            etDate.setText(reservation.date);
+            etTime.setText(reservation.time);
             etName.setText(reservation.name);
             etTable.setText(reservation.table);
         }
@@ -151,7 +150,7 @@ public class ReservationManagementActivity extends AppCompatActivity implements 
                         Toast.makeText(this, "Failed to update reservation", Toast.LENGTH_SHORT).show();
                     }
                 } else {
-                    if (dbHelper.addReservation(date, time, name, table) > 0) {
+                    if (dbHelper.addReservation(date, time, name, table, 0, "") > 0) {
                         Toast.makeText(this, "Reservation added successfully", Toast.LENGTH_SHORT).show();
                         loadReservations();
                     } else {
@@ -167,6 +166,46 @@ public class ReservationManagementActivity extends AppCompatActivity implements 
 
         builder.setNegativeButton("Cancel", (d, which) -> d.dismiss());
         builder.create().show();
+    }
+
+    @Override
+    public void onDetailClick(Reservation reservation) {
+        showReservationDetailDialog(reservation);
+    }
+
+    private void showReservationDetailDialog(Reservation reservation) {
+        // Get full reservation details from database
+        Reservation fullReservation = dbHelper.getReservationById(reservation.id);
+        if (fullReservation == null) {
+            Toast.makeText(this, "Reservation not found", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_reservation_detail, null);
+        
+        TextView tvDetailName = dialogView.findViewById(R.id.tvDetailName);
+        TextView tvDetailDate = dialogView.findViewById(R.id.tvDetailDate);
+        TextView tvDetailTime = dialogView.findViewById(R.id.tvDetailTime);
+        TextView tvDetailTable = dialogView.findViewById(R.id.tvDetailTable);
+        TextView tvDetailGuests = dialogView.findViewById(R.id.tvDetailGuests);
+        TextView tvDetailSpecialRequest = dialogView.findViewById(R.id.tvDetailSpecialRequest);
+        MaterialButton btnCloseDetail = dialogView.findViewById(R.id.btnCloseDetail);
+
+        tvDetailName.setText(fullReservation.name);
+        tvDetailDate.setText(fullReservation.date);
+        tvDetailTime.setText(fullReservation.time);
+        tvDetailTable.setText(fullReservation.table);
+        tvDetailGuests.setText(fullReservation.numberOfGuests > 0 ? String.valueOf(fullReservation.numberOfGuests) : "Not specified");
+        tvDetailSpecialRequest.setText(fullReservation.specialRequest != null && !fullReservation.specialRequest.isEmpty() 
+                ? fullReservation.specialRequest : "No special requests");
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(dialogView)
+                .setCancelable(true)
+                .create();
+
+        btnCloseDetail.setOnClickListener(v -> dialog.dismiss());
+        dialog.show();
     }
 
     @Override

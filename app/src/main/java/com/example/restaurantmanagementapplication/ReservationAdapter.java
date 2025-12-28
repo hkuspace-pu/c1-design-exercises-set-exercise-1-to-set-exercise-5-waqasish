@@ -14,6 +14,7 @@ public class ReservationAdapter extends RecyclerView.Adapter<ReservationAdapter.
     private OnReservationActionListener listener;
 
     public interface OnReservationActionListener {
+        void onDetailClick(Reservation reservation);
         void onEditClick(Reservation reservation);
         void onDeleteClick(Reservation reservation);
     }
@@ -34,9 +35,15 @@ public class ReservationAdapter extends RecyclerView.Adapter<ReservationAdapter.
     @Override
     public void onBindViewHolder(@NonNull ViewHolder h, int p) {
         Reservation r = list.get(p);
-        h.tvDateTime.setText(r.dateTime);
+        h.tvDateTime.setText(r.date + ", " + r.time);
         h.tvName.setText(r.name);
         h.tvTable.setText(r.table);
+
+        h.tvDetail.setOnClickListener(v -> {
+            if (listener != null) {
+                listener.onDetailClick(r);
+            }
+        });
 
         h.tvEdit.setOnClickListener(v -> {
             if (listener != null) {
@@ -60,13 +67,14 @@ public class ReservationAdapter extends RecyclerView.Adapter<ReservationAdapter.
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView tvDateTime, tvName, tvTable, tvEdit, tvCancel;
+        TextView tvDateTime, tvName, tvTable, tvDetail, tvEdit, tvCancel;
         
         public ViewHolder(@NonNull View v) {
             super(v);
             tvDateTime = v.findViewById(R.id.tvDateTime);
             tvName = v.findViewById(R.id.tvName);
             tvTable = v.findViewById(R.id.tvTable);
+            tvDetail = v.findViewById(R.id.tvDetail);
             tvEdit = v.findViewById(R.id.tvEdit);
             tvCancel = v.findViewById(R.id.tvCancel);
         }

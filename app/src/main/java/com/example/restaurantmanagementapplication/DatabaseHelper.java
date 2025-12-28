@@ -13,7 +13,7 @@ import java.util.Locale;
 public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String DATABASE_NAME = "restaurant_db";
     // Bump version when changing schema
-    private static final int DATABASE_VERSION = 2;
+    private static final int DATABASE_VERSION = 3;
 
     // Users table
     private static final String TABLE_USERS = "users";
@@ -35,6 +35,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String COL_RESERVATION_TIME = "reservation_time";
     private static final String COL_RESERVATION_NAME = "customer_name";
     private static final String COL_RESERVATION_TABLE = "table_number";
+    private static final String COL_RESERVATION_GUESTS = "number_of_guests";
+    private static final String COL_RESERVATION_SPECIAL_REQUEST = "special_request";
 
     // Food Items table
     private static final String TABLE_FOOD_ITEMS = "food_items";
@@ -69,7 +71,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 COL_RESERVATION_DATE + " TEXT NOT NULL, " +
                 COL_RESERVATION_TIME + " TEXT NOT NULL, " +
                 COL_RESERVATION_NAME + " TEXT NOT NULL, " +
-                COL_RESERVATION_TABLE + " TEXT NOT NULL)";
+                COL_RESERVATION_TABLE + " TEXT NOT NULL, " +
+                COL_RESERVATION_GUESTS + " INTEGER, " +
+                COL_RESERVATION_SPECIAL_REQUEST + " TEXT)";
 
         // Create food items table
         String createFoodItemsTable = "CREATE TABLE " + TABLE_FOOD_ITEMS + " (" +
@@ -96,8 +100,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         userValues.put(COL_USER_ROLE, "staff");
         db.insert(TABLE_USERS, null, userValues);
 
-        // Insert sample reservations
-        insertSampleReservations(db);
+        // Don't insert sample reservations - start with empty reservations
 
         // Insert sample food items
         insertSampleFoodItems(db);
@@ -146,10 +149,21 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_USERS);
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_RESERVATIONS);
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_FOOD_ITEMS);
-        onCreate(db);
+        if (oldVersion < 3) {
+            // Add new columns to reservations table
+            try {
+                db.execSQL("ALTER TABLE " + TABLE_RESERVATIONS + " ADD COLUMN " + COL_RESERVATION_GUESTS + " INTEGER");
+            } catch (Exception e) {
+                // Column might already exist
+            }
+            try {
+                db.execSQL("ALTER TABLE " + TABLE_RESERVATIONS + " ADD COLUMN " + COL_RESERVATION_SPECIAL_REQUEST + " TEXT");
+            } catch (Exception e) {
+                // Column might already exist
+            }
+            // Clear sample reservations
+            db.execSQL("DELETE FROM " + TABLE_RESERVATIONS);
+        }
     }
 
     // User authentication methods
@@ -213,16 +227,70 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     }
 
     // Reservation methods
-    public long addReservation(String date, String time, String name, String table) {
+    public long addReservation(String date, String time, String name, String table, int numberOfGuests, String specialRequest) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(COL_RESERVATION_DATE, date);
         values.put(COL_RESERVATION_TIME, time);
         values.put(COL_RESERVATION_NAME, name);
         values.put(COL_RESERVATION_TABLE, table);
+        values.put(COL_RESERVATION_GUESTS, numberOfGuests);
+        values.put(COL_RESERVATION_SPECIAL_REQUEST, specialRequest);
         long id = db.insert(TABLE_RESERVATIONS, null, values);
         db.close();
         return id;
+    }
+
+    // Overloaded method for backward compatibility
+    public long addReservation(String date, String time, String name, String table) {
+        return addReservation(date, time, name, table, 0, "");
+    }
+
+    // Check if a table is available for a given date and time
+    public boolean isTableAvailable(String date, String time, String tableNumber) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        String query = "SELECT * FROM " + TABLE_RESERVATIONS + " WHERE " +
+                COL_RESERVATION_DATE + " = ? AND " + COL_RESERVATION_TIME + " = ? AND " +
+                COL_RESERVATION_TABLE + " = ?";
+        Cursor cursor = db.rawQuery(query, new String[]{date, time, tableNumber});
+        boolean isAvailable = cursor.getCount() == 0;
+        cursor.close();
+        db.close();
+        return isAvailable;
+    }
+
+    // Get available tables for a given date and time
+    public ArrayList<Integer> getAvailableTables(String date, String time) {
+        ArrayList<Integer> allTables = new ArrayList<>();
+        for (int i = 1; i <= 12; i++) {
+            allTables.add(i);
+        }
+
+        SQLiteDatabase db = this.getReadableDatabase();
+        String query = "SELECT " + COL_RESERVATION_TABLE + " FROM " + TABLE_RESERVATIONS +
+                " WHERE " + COL_RESERVATION_DATE + " = ? AND " + COL_RESERVATION_TIME + " = ?";
+        Cursor cursor = db.rawQuery(query, new String[]{date, time});
+
+        ArrayList<Integer> bookedTables = new ArrayList<>();
+        if (cursor.moveToFirst()) {
+            do {
+                String tableStr = cursor.getString(cursor.getColumnIndexOrThrow(COL_RESERVATION_TABLE));
+                // Extract number from "Table X" format
+                try {
+                    String numberStr = tableStr.replace("Table ", "").trim();
+                    int tableNum = Integer.parseInt(numberStr);
+                    bookedTables.add(tableNum);
+                } catch (NumberFormatException e) {
+                    // Skip invalid table numbers
+                }
+            } while (cursor.moveToNext());
+        }
+        cursor.close();
+        db.close();
+
+        // Remove booked tables from available list
+        allTables.removeAll(bookedTables);
+        return allTables;
     }
 
     public ArrayList<Reservation> getAllReservations() {
@@ -234,12 +302,34 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
         if (cursor.moveToFirst()) {
             do {
-                String dateTime = cursor.getString(cursor.getColumnIndexOrThrow(COL_RESERVATION_DATE)) +
-                        ", " + cursor.getString(cursor.getColumnIndexOrThrow(COL_RESERVATION_TIME));
+                String date = cursor.getString(cursor.getColumnIndexOrThrow(COL_RESERVATION_DATE));
+                String time = cursor.getString(cursor.getColumnIndexOrThrow(COL_RESERVATION_TIME));
                 String name = cursor.getString(cursor.getColumnIndexOrThrow(COL_RESERVATION_NAME));
                 String table = cursor.getString(cursor.getColumnIndexOrThrow(COL_RESERVATION_TABLE));
                 int id = cursor.getInt(cursor.getColumnIndexOrThrow(COL_RESERVATION_ID));
-                Reservation reservation = new Reservation(dateTime, name, table);
+                
+                int numberOfGuests = 0;
+                try {
+                    int columnIndex = cursor.getColumnIndex(COL_RESERVATION_GUESTS);
+                    if (columnIndex >= 0 && !cursor.isNull(columnIndex)) {
+                        numberOfGuests = cursor.getInt(columnIndex);
+                    }
+                } catch (Exception e) {
+                    // Column might not exist
+                }
+                
+                String specialRequest = "";
+                try {
+                    int columnIndex = cursor.getColumnIndex(COL_RESERVATION_SPECIAL_REQUEST);
+                    if (columnIndex >= 0 && !cursor.isNull(columnIndex)) {
+                        specialRequest = cursor.getString(columnIndex);
+                        if (specialRequest == null) specialRequest = "";
+                    }
+                } catch (Exception e) {
+                    // Column might not exist
+                }
+                
+                Reservation reservation = new Reservation(date, time, name, table, numberOfGuests, specialRequest);
                 reservation.id = id;
                 reservations.add(reservation);
             } while (cursor.moveToNext());
@@ -261,12 +351,34 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
         if (cursor.moveToFirst()) {
             do {
-                String dateTime = cursor.getString(cursor.getColumnIndexOrThrow(COL_RESERVATION_DATE)) +
-                        ", " + cursor.getString(cursor.getColumnIndexOrThrow(COL_RESERVATION_TIME));
+                String date = cursor.getString(cursor.getColumnIndexOrThrow(COL_RESERVATION_DATE));
+                String time = cursor.getString(cursor.getColumnIndexOrThrow(COL_RESERVATION_TIME));
                 String name = cursor.getString(cursor.getColumnIndexOrThrow(COL_RESERVATION_NAME));
                 String table = cursor.getString(cursor.getColumnIndexOrThrow(COL_RESERVATION_TABLE));
                 int id = cursor.getInt(cursor.getColumnIndexOrThrow(COL_RESERVATION_ID));
-                Reservation reservation = new Reservation(dateTime, name, table);
+                
+                int numberOfGuests = 0;
+                try {
+                    int columnIndex = cursor.getColumnIndex(COL_RESERVATION_GUESTS);
+                    if (columnIndex >= 0 && !cursor.isNull(columnIndex)) {
+                        numberOfGuests = cursor.getInt(columnIndex);
+                    }
+                } catch (Exception e) {
+                    // Column might not exist
+                }
+                
+                String specialRequest = "";
+                try {
+                    int columnIndex = cursor.getColumnIndex(COL_RESERVATION_SPECIAL_REQUEST);
+                    if (columnIndex >= 0 && !cursor.isNull(columnIndex)) {
+                        specialRequest = cursor.getString(columnIndex);
+                        if (specialRequest == null) specialRequest = "";
+                    }
+                } catch (Exception e) {
+                    // Column might not exist
+                }
+                
+                Reservation reservation = new Reservation(date, time, name, table, numberOfGuests, specialRequest);
                 reservation.id = id;
                 reservations.add(reservation);
             } while (cursor.moveToNext());
@@ -277,12 +389,18 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     }
 
     public boolean updateReservation(int id, String date, String time, String name, String table) {
+        return updateReservation(id, date, time, name, table, 0, "");
+    }
+
+    public boolean updateReservation(int id, String date, String time, String name, String table, int numberOfGuests, String specialRequest) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(COL_RESERVATION_DATE, date);
         values.put(COL_RESERVATION_TIME, time);
         values.put(COL_RESERVATION_NAME, name);
         values.put(COL_RESERVATION_TABLE, table);
+        values.put(COL_RESERVATION_GUESTS, numberOfGuests);
+        values.put(COL_RESERVATION_SPECIAL_REQUEST, specialRequest);
         int rowsAffected = db.update(TABLE_RESERVATIONS, values, COL_RESERVATION_ID + " = ?",
                 new String[]{String.valueOf(id)});
         db.close();
@@ -305,11 +423,33 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
         Reservation reservation = null;
         if (cursor.moveToFirst()) {
-            String dateTime = cursor.getString(cursor.getColumnIndexOrThrow(COL_RESERVATION_DATE)) +
-                    ", " + cursor.getString(cursor.getColumnIndexOrThrow(COL_RESERVATION_TIME));
+            String date = cursor.getString(cursor.getColumnIndexOrThrow(COL_RESERVATION_DATE));
+            String time = cursor.getString(cursor.getColumnIndexOrThrow(COL_RESERVATION_TIME));
             String name = cursor.getString(cursor.getColumnIndexOrThrow(COL_RESERVATION_NAME));
             String table = cursor.getString(cursor.getColumnIndexOrThrow(COL_RESERVATION_TABLE));
-            reservation = new Reservation(dateTime, name, table);
+            
+            int numberOfGuests = 0;
+            try {
+                int columnIndex = cursor.getColumnIndex(COL_RESERVATION_GUESTS);
+                if (columnIndex >= 0 && !cursor.isNull(columnIndex)) {
+                    numberOfGuests = cursor.getInt(columnIndex);
+                }
+            } catch (Exception e) {
+                // Column might not exist in older versions
+            }
+            
+            String specialRequest = "";
+            try {
+                int columnIndex = cursor.getColumnIndex(COL_RESERVATION_SPECIAL_REQUEST);
+                if (columnIndex >= 0 && !cursor.isNull(columnIndex)) {
+                    specialRequest = cursor.getString(columnIndex);
+                    if (specialRequest == null) specialRequest = "";
+                }
+            } catch (Exception e) {
+                // Column might not exist in older versions
+            }
+            
+            reservation = new Reservation(date, time, name, table, numberOfGuests, specialRequest);
             reservation.id = id;
         }
         cursor.close();
@@ -327,12 +467,34 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
         if (cursor.moveToFirst()) {
             do {
-                String dateTime = cursor.getString(cursor.getColumnIndexOrThrow(COL_RESERVATION_DATE)) +
-                        ", " + cursor.getString(cursor.getColumnIndexOrThrow(COL_RESERVATION_TIME));
+                String date = cursor.getString(cursor.getColumnIndexOrThrow(COL_RESERVATION_DATE));
+                String time = cursor.getString(cursor.getColumnIndexOrThrow(COL_RESERVATION_TIME));
                 String name = cursor.getString(cursor.getColumnIndexOrThrow(COL_RESERVATION_NAME));
                 String table = cursor.getString(cursor.getColumnIndexOrThrow(COL_RESERVATION_TABLE));
                 int id = cursor.getInt(cursor.getColumnIndexOrThrow(COL_RESERVATION_ID));
-                Reservation reservation = new Reservation(dateTime, name, table);
+                
+                int numberOfGuests = 0;
+                try {
+                    int columnIndex = cursor.getColumnIndex(COL_RESERVATION_GUESTS);
+                    if (columnIndex >= 0 && !cursor.isNull(columnIndex)) {
+                        numberOfGuests = cursor.getInt(columnIndex);
+                    }
+                } catch (Exception e) {
+                    // Column might not exist
+                }
+                
+                String specialRequest = "";
+                try {
+                    int columnIndex = cursor.getColumnIndex(COL_RESERVATION_SPECIAL_REQUEST);
+                    if (columnIndex >= 0 && !cursor.isNull(columnIndex)) {
+                        specialRequest = cursor.getString(columnIndex);
+                        if (specialRequest == null) specialRequest = "";
+                    }
+                } catch (Exception e) {
+                    // Column might not exist
+                }
+                
+                Reservation reservation = new Reservation(date, time, name, table, numberOfGuests, specialRequest);
                 reservation.id = id;
                 reservations.add(reservation);
             } while (cursor.moveToNext());
