@@ -21,8 +21,8 @@ import java.util.Locale;
 
 public class GuestMakeReservationActivity extends AppCompatActivity implements TableSelectionAdapter.OnTableSelectedListener {
 
-    private TextInputEditText etSelectDate, etTime, etNumberOfGuests, etSpecialRequest;
-    private TextInputLayout tilSelectDate, tilTime, tilNumberOfGuests;
+    private TextInputEditText etSelectDate, etTime, etName, etNumberOfGuests, etSpecialRequest;
+    private TextInputLayout tilSelectDate, tilTime, tilName, tilNumberOfGuests;
     private RecyclerView rvTables;
     private MaterialButton btnReserveTable;
     private DatabaseHelper dbHelper;
@@ -51,15 +51,20 @@ public class GuestMakeReservationActivity extends AppCompatActivity implements T
         userName = dbHelper.getUserNameByEmail(userEmail);
 
         // Check if editing existing reservation
-        editReservationId = getIntent().getIntExtra("edit_reservation_id", -1);
+        editReservationId = getIntent().getIntExtra("reservation_id", -1);
+        if (editReservationId == -1) {
+            editReservationId = getIntent().getIntExtra("edit_reservation_id", -1);
+        }
         isEditMode = editReservationId != -1;
 
         etSelectDate = findViewById(R.id.etSelectDate);
         etTime = findViewById(R.id.etTime);
+        etName = findViewById(R.id.etName);
         etNumberOfGuests = findViewById(R.id.etNumberOfGuests);
         etSpecialRequest = findViewById(R.id.etSpecialRequest);
         tilSelectDate = findViewById(R.id.tilSelectDate);
         tilTime = findViewById(R.id.tilTime);
+        tilName = findViewById(R.id.tilName);
         tilNumberOfGuests = findViewById(R.id.tilNumberOfGuests);
         rvTables = findViewById(R.id.rvTables);
         btnReserveTable = findViewById(R.id.btnReserveTable);
@@ -93,6 +98,7 @@ public class GuestMakeReservationActivity extends AppCompatActivity implements T
                 etSelectDate.setText(existingReservation.date);
                 etTime.setText(existingReservation.time);
                 selectedTime = existingReservation.time;
+                etName.setText(existingReservation.name);
                 if (existingReservation.numberOfGuests > 0) {
                     etNumberOfGuests.setText(String.valueOf(existingReservation.numberOfGuests));
                 }
@@ -111,6 +117,9 @@ public class GuestMakeReservationActivity extends AppCompatActivity implements T
                 // Update available tables after a short delay to ensure adapter is ready
                 rvTables.post(() -> updateAvailableTables());
             }
+        } else {
+            // Pre-fill name with logged-in user's name for new reservations
+            etName.setText(userName);
         }
 
         // Bottom Navigation
@@ -206,7 +215,8 @@ public class GuestMakeReservationActivity extends AppCompatActivity implements T
 
         String date = etSelectDate.getText().toString();
         String time = etTime.getText().toString();
-        ArrayList<Integer> availableTables = dbHelper.getAvailableTables(date, time);
+        int excludeReservationId = isEditMode ? editReservationId : -1;
+        ArrayList<Integer> availableTables = dbHelper.getAvailableTables(date, time, excludeReservationId);
 
         ArrayList<TableItem> tables = new ArrayList<>();
         for (int i = 1; i <= 12; i++) {
@@ -235,6 +245,7 @@ public class GuestMakeReservationActivity extends AppCompatActivity implements T
     private void makeReservation() {
         String date = etSelectDate.getText().toString().trim();
         String time = etTime.getText().toString().trim();
+        String name = etName.getText().toString().trim();
         String numberOfGuestsStr = etNumberOfGuests.getText().toString().trim();
         String specialRequest = etSpecialRequest.getText().toString().trim();
 
@@ -252,6 +263,13 @@ public class GuestMakeReservationActivity extends AppCompatActivity implements T
             isValid = false;
         } else {
             tilTime.setError(null);
+        }
+
+        if (name.isEmpty()) {
+            tilName.setError("Name is required");
+            isValid = false;
+        } else {
+            tilName.setError(null);
         }
 
         int numberOfGuests = 0;
@@ -279,25 +297,27 @@ public class GuestMakeReservationActivity extends AppCompatActivity implements T
         }
 
         if (isValid) {
-            // Check if table is still available
+            // Check if table is still available (with 1-hour occupancy window)
             String tableStr = "Table " + selectedTableNumber;
-            if (!dbHelper.isTableAvailable(date, time, tableStr)) {
+            if (!dbHelper.isTableAvailable(date, time, tableStr, isEditMode ? editReservationId : -1)) {
                 Toast.makeText(this, "This table is no longer available. Please select another table.", Toast.LENGTH_SHORT).show();
                 updateAvailableTables();
                 return;
             }
 
+            // Use the name entered by the user (not forced to userName)
             // Create or update reservation
             boolean success;
             if (isEditMode) {
-                success = dbHelper.updateReservation(editReservationId, date, time, userName, tableStr, numberOfGuests, specialRequest);
+                success = dbHelper.updateReservation(editReservationId, date, time, name, tableStr, numberOfGuests, specialRequest);
                 if (success) {
                     Toast.makeText(this, "Reservation updated successfully!", Toast.LENGTH_SHORT).show();
                 } else {
                     Toast.makeText(this, "Failed to update reservation", Toast.LENGTH_SHORT).show();
                 }
             } else {
-                long reservationId = dbHelper.addReservation(date, time, userName, tableStr, numberOfGuests, specialRequest);
+                // Pass userEmail to link reservation to user
+                long reservationId = dbHelper.addReservation(date, time, name, tableStr, numberOfGuests, specialRequest, userEmail);
                 success = reservationId > 0;
                 if (success) {
                     Toast.makeText(this, "Reservation made successfully!", Toast.LENGTH_SHORT).show();

@@ -73,8 +73,12 @@ public class ReservationManagementActivity extends AppCompatActivity implements 
 
     private void loadReservations() {
         reservations = dbHelper.getAllReservations();
-        adapter = new ReservationAdapter(reservations, this);
-        rvReservations.setAdapter(adapter);
+        if (adapter == null) {
+            adapter = new ReservationAdapter(reservations, this);
+            rvReservations.setAdapter(adapter);
+        } else {
+            adapter.updateList(reservations);
+        }
     }
 
     private void showAddReservationDialog(Reservation reservation) {

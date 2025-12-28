@@ -13,7 +13,7 @@ import java.util.Locale;
 public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String DATABASE_NAME = "restaurant_db";
     // Bump version when changing schema
-    private static final int DATABASE_VERSION = 3;
+    private static final int DATABASE_VERSION = 4;
 
     // Users table
     private static final String TABLE_USERS = "users";
@@ -37,6 +37,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String COL_RESERVATION_TABLE = "table_number";
     private static final String COL_RESERVATION_GUESTS = "number_of_guests";
     private static final String COL_RESERVATION_SPECIAL_REQUEST = "special_request";
+    private static final String COL_RESERVATION_USER_EMAIL = "user_email";
 
     // Food Items table
     private static final String TABLE_FOOD_ITEMS = "food_items";
@@ -73,7 +74,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 COL_RESERVATION_NAME + " TEXT NOT NULL, " +
                 COL_RESERVATION_TABLE + " TEXT NOT NULL, " +
                 COL_RESERVATION_GUESTS + " INTEGER, " +
-                COL_RESERVATION_SPECIAL_REQUEST + " TEXT)";
+                COL_RESERVATION_SPECIAL_REQUEST + " TEXT, " +
+                COL_RESERVATION_USER_EMAIL + " TEXT)";
 
         // Create food items table
         String createFoodItemsTable = "CREATE TABLE " + TABLE_FOOD_ITEMS + " (" +
@@ -164,6 +166,14 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             // Clear sample reservations
             db.execSQL("DELETE FROM " + TABLE_RESERVATIONS);
         }
+        if (oldVersion < 4) {
+            // Add user_email column to reservations table
+            try {
+                db.execSQL("ALTER TABLE " + TABLE_RESERVATIONS + " ADD COLUMN " + COL_RESERVATION_USER_EMAIL + " TEXT");
+            } catch (Exception e) {
+                // Column might already exist
+            }
+        }
     }
 
     // User authentication methods
@@ -228,6 +238,10 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     // Reservation methods
     public long addReservation(String date, String time, String name, String table, int numberOfGuests, String specialRequest) {
+        return addReservation(date, time, name, table, numberOfGuests, specialRequest, null);
+    }
+
+    public long addReservation(String date, String time, String name, String table, int numberOfGuests, String specialRequest, String userEmail) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(COL_RESERVATION_DATE, date);
@@ -236,6 +250,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put(COL_RESERVATION_TABLE, table);
         values.put(COL_RESERVATION_GUESTS, numberOfGuests);
         values.put(COL_RESERVATION_SPECIAL_REQUEST, specialRequest);
+        if (userEmail != null) {
+            values.put(COL_RESERVATION_USER_EMAIL, userEmail);
+        }
         long id = db.insert(TABLE_RESERVATIONS, null, values);
         db.close();
         return id;
@@ -246,42 +263,202 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return addReservation(date, time, name, table, 0, "");
     }
 
-    // Check if a table is available for a given date and time
+    // Check if a table is available for a given date and time (with 1-hour occupancy window)
     public boolean isTableAvailable(String date, String time, String tableNumber) {
+        return isTableAvailable(date, time, tableNumber, -1);
+    }
+
+    // Check if a table is available for a given date and time (with 1-hour occupancy window)
+    // excludeReservationId: ID of reservation to exclude from check (useful when editing)
+    public boolean isTableAvailable(String date, String time, String tableNumber, int excludeReservationId) {
         SQLiteDatabase db = this.getReadableDatabase();
-        String query = "SELECT * FROM " + TABLE_RESERVATIONS + " WHERE " +
-                COL_RESERVATION_DATE + " = ? AND " + COL_RESERVATION_TIME + " = ? AND " +
-                COL_RESERVATION_TABLE + " = ?";
-        Cursor cursor = db.rawQuery(query, new String[]{date, time, tableNumber});
-        boolean isAvailable = cursor.getCount() == 0;
+        
+        // Parse the requested time to get hour and minute
+        TimeSlot requestedSlot = parseTimeSlot(time);
+        if (requestedSlot == null) {
+            // If time parsing fails, fall back to exact match
+            String query = "SELECT * FROM " + TABLE_RESERVATIONS + " WHERE " +
+                    COL_RESERVATION_DATE + " = ? AND " + COL_RESERVATION_TIME + " = ? AND " +
+                    COL_RESERVATION_TABLE + " = ?";
+            if (excludeReservationId > 0) {
+                query += " AND " + COL_RESERVATION_ID + " != ?";
+                Cursor cursor = db.rawQuery(query, new String[]{date, time, tableNumber, String.valueOf(excludeReservationId)});
+                boolean isAvailable = cursor.getCount() == 0;
+                cursor.close();
+                db.close();
+                return isAvailable;
+            } else {
+                Cursor cursor = db.rawQuery(query, new String[]{date, time, tableNumber});
+                boolean isAvailable = cursor.getCount() == 0;
+                cursor.close();
+                db.close();
+                return isAvailable;
+            }
+        }
+
+        // Get all reservations for this table on this date
+        String query = "SELECT " + COL_RESERVATION_TIME + ", " + COL_RESERVATION_ID + " FROM " + TABLE_RESERVATIONS +
+                " WHERE " + COL_RESERVATION_DATE + " = ? AND " + COL_RESERVATION_TABLE + " = ?";
+        if (excludeReservationId > 0) {
+            query += " AND " + COL_RESERVATION_ID + " != ?";
+        }
+        String[] args = excludeReservationId > 0 
+                ? new String[]{date, tableNumber, String.valueOf(excludeReservationId)}
+                : new String[]{date, tableNumber};
+        
+        Cursor cursor = db.rawQuery(query, args);
+        
+        boolean isAvailable = true;
+        if (cursor.moveToFirst()) {
+            do {
+                String existingTime = cursor.getString(cursor.getColumnIndexOrThrow(COL_RESERVATION_TIME));
+                TimeSlot existingSlot = parseTimeSlot(existingTime);
+                if (existingSlot != null) {
+                    // Check if time slots overlap (1-hour window)
+                    // Requested time: requestedSlot.start to requestedSlot.start + 1 hour
+                    // Existing time: existingSlot.start to existingSlot.start + 1 hour
+                    // They overlap if: requestedSlot.start < existingSlot.end && existingSlot.start < requestedSlot.end
+                    if (requestedSlot.startMinutes < existingSlot.endMinutes && 
+                        existingSlot.startMinutes < requestedSlot.endMinutes) {
+                        isAvailable = false;
+                        break;
+                    }
+                }
+            } while (cursor.moveToNext());
+        }
+        
         cursor.close();
         db.close();
         return isAvailable;
     }
 
-    // Get available tables for a given date and time
+    // Helper class to represent a time slot
+    private static class TimeSlot {
+        int startMinutes; // Minutes since midnight
+        int endMinutes;   // Minutes since midnight (start + 60)
+        
+        TimeSlot(int hour, int minute) {
+            this.startMinutes = hour * 60 + minute;
+            this.endMinutes = this.startMinutes + 60; // 1 hour later
+        }
+    }
+
+    // Parse time string (e.g., "7:15 PM" or "7:15PM") to TimeSlot
+    private TimeSlot parseTimeSlot(String timeStr) {
+        try {
+            // Remove spaces and convert to uppercase
+            String time = timeStr.trim().replaceAll("\\s+", "").toUpperCase();
+            
+            // Check if it's AM or PM
+            boolean isPM = time.contains("PM");
+            time = time.replace("AM", "").replace("PM", "");
+            
+            // Split by colon
+            String[] parts = time.split(":");
+            if (parts.length != 2) {
+                return null;
+            }
+            
+            int hour = Integer.parseInt(parts[0]);
+            int minute = Integer.parseInt(parts[1]);
+            
+            // Convert to 24-hour format
+            if (isPM && hour != 12) {
+                hour += 12;
+            } else if (!isPM && hour == 12) {
+                hour = 0;
+            }
+            
+            return new TimeSlot(hour, minute);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    // Get available tables for a given date and time (with 1-hour occupancy window)
     public ArrayList<Integer> getAvailableTables(String date, String time) {
+        return getAvailableTables(date, time, -1);
+    }
+
+    // Get available tables for a given date and time (with 1-hour occupancy window)
+    // excludeReservationId: ID of reservation to exclude from check (useful when editing)
+    public ArrayList<Integer> getAvailableTables(String date, String time, int excludeReservationId) {
         ArrayList<Integer> allTables = new ArrayList<>();
         for (int i = 1; i <= 12; i++) {
             allTables.add(i);
         }
 
+        // Parse the requested time to get hour and minute
+        TimeSlot requestedSlot = parseTimeSlot(time);
+        if (requestedSlot == null) {
+            // If time parsing fails, fall back to exact match
+            SQLiteDatabase db = this.getReadableDatabase();
+            String query = "SELECT " + COL_RESERVATION_TABLE + " FROM " + TABLE_RESERVATIONS +
+                    " WHERE " + COL_RESERVATION_DATE + " = ? AND " + COL_RESERVATION_TIME + " = ?";
+            if (excludeReservationId > 0) {
+                query += " AND " + COL_RESERVATION_ID + " != ?";
+            }
+            String[] args = excludeReservationId > 0 
+                    ? new String[]{date, time, String.valueOf(excludeReservationId)}
+                    : new String[]{date, time};
+            Cursor cursor = db.rawQuery(query, args);
+
+            ArrayList<Integer> bookedTables = new ArrayList<>();
+            if (cursor.moveToFirst()) {
+                do {
+                    String tableStr = cursor.getString(cursor.getColumnIndexOrThrow(COL_RESERVATION_TABLE));
+                    // Extract number from "Table X" format
+                    try {
+                        String numberStr = tableStr.replace("Table ", "").trim();
+                        int tableNum = Integer.parseInt(numberStr);
+                        bookedTables.add(tableNum);
+                    } catch (NumberFormatException e) {
+                        // Skip invalid table numbers
+                    }
+                } while (cursor.moveToNext());
+            }
+            cursor.close();
+            db.close();
+
+            // Remove booked tables from available list
+            allTables.removeAll(bookedTables);
+            return allTables;
+        }
+
+        // Get all reservations for this date
         SQLiteDatabase db = this.getReadableDatabase();
-        String query = "SELECT " + COL_RESERVATION_TABLE + " FROM " + TABLE_RESERVATIONS +
-                " WHERE " + COL_RESERVATION_DATE + " = ? AND " + COL_RESERVATION_TIME + " = ?";
-        Cursor cursor = db.rawQuery(query, new String[]{date, time});
+        String query = "SELECT " + COL_RESERVATION_TABLE + ", " + COL_RESERVATION_TIME + ", " + COL_RESERVATION_ID +
+                " FROM " + TABLE_RESERVATIONS + " WHERE " + COL_RESERVATION_DATE + " = ?";
+        if (excludeReservationId > 0) {
+            query += " AND " + COL_RESERVATION_ID + " != ?";
+        }
+        String[] args = excludeReservationId > 0 
+                ? new String[]{date, String.valueOf(excludeReservationId)}
+                : new String[]{date};
+        Cursor cursor = db.rawQuery(query, args);
 
         ArrayList<Integer> bookedTables = new ArrayList<>();
         if (cursor.moveToFirst()) {
             do {
                 String tableStr = cursor.getString(cursor.getColumnIndexOrThrow(COL_RESERVATION_TABLE));
-                // Extract number from "Table X" format
-                try {
-                    String numberStr = tableStr.replace("Table ", "").trim();
-                    int tableNum = Integer.parseInt(numberStr);
-                    bookedTables.add(tableNum);
-                } catch (NumberFormatException e) {
-                    // Skip invalid table numbers
+                String existingTime = cursor.getString(cursor.getColumnIndexOrThrow(COL_RESERVATION_TIME));
+                TimeSlot existingSlot = parseTimeSlot(existingTime);
+                
+                if (existingSlot != null) {
+                    // Check if time slots overlap (1-hour window)
+                    if (requestedSlot.startMinutes < existingSlot.endMinutes && 
+                        existingSlot.startMinutes < requestedSlot.endMinutes) {
+                        // Extract number from "Table X" format
+                        try {
+                            String numberStr = tableStr.replace("Table ", "").trim();
+                            int tableNum = Integer.parseInt(numberStr);
+                            if (!bookedTables.contains(tableNum)) {
+                                bookedTables.add(tableNum);
+                            }
+                        } catch (NumberFormatException e) {
+                            // Skip invalid table numbers
+                        }
+                    }
                 }
             } while (cursor.moveToNext());
         }
@@ -458,12 +635,16 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     }
 
     // Get reservations by customer name
-    public ArrayList<Reservation> getReservationsByCustomerName(String customerName) {
+    // Get reservations by user email (for finding all reservations by logged-in user)
+    public ArrayList<Reservation> getReservationsByUserEmail(String userEmail) {
         ArrayList<Reservation> reservations = new ArrayList<>();
+        if (userEmail == null || userEmail.trim().isEmpty()) {
+            return reservations;
+        }
         SQLiteDatabase db = this.getReadableDatabase();
         String query = "SELECT * FROM " + TABLE_RESERVATIONS + " WHERE " +
-                COL_RESERVATION_NAME + " = ? ORDER BY " + COL_RESERVATION_DATE + ", " + COL_RESERVATION_TIME;
-        Cursor cursor = db.rawQuery(query, new String[]{customerName});
+                COL_RESERVATION_USER_EMAIL + " = ? ORDER BY " + COL_RESERVATION_DATE + ", " + COL_RESERVATION_TIME;
+        Cursor cursor = db.rawQuery(query, new String[]{userEmail.trim()});
 
         if (cursor.moveToFirst()) {
             do {
@@ -497,6 +678,61 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 Reservation reservation = new Reservation(date, time, name, table, numberOfGuests, specialRequest);
                 reservation.id = id;
                 reservations.add(reservation);
+            } while (cursor.moveToNext());
+        }
+        cursor.close();
+        db.close();
+        return reservations;
+    }
+
+    public ArrayList<Reservation> getReservationsByCustomerName(String customerName) {
+        ArrayList<Reservation> reservations = new ArrayList<>();
+        if (customerName == null || customerName.trim().isEmpty()) {
+            return reservations;
+        }
+        SQLiteDatabase db = this.getReadableDatabase();
+        // Trim the customer name for comparison
+        String trimmedName = customerName.trim();
+        // Get all reservations and filter by name (handles case and whitespace differences)
+        String query = "SELECT * FROM " + TABLE_RESERVATIONS + " ORDER BY " + COL_RESERVATION_DATE + ", " + COL_RESERVATION_TIME;
+        Cursor cursor = db.rawQuery(query, null);
+        
+        // Filter in Java to handle case-insensitive and whitespace differences
+        if (cursor.moveToFirst()) {
+            do {
+                String reservationName = cursor.getString(cursor.getColumnIndexOrThrow(COL_RESERVATION_NAME));
+                // Compare trimmed and case-insensitive
+                if (reservationName != null && reservationName.trim().equalsIgnoreCase(trimmedName)) {
+                    String date = cursor.getString(cursor.getColumnIndexOrThrow(COL_RESERVATION_DATE));
+                    String time = cursor.getString(cursor.getColumnIndexOrThrow(COL_RESERVATION_TIME));
+                    String table = cursor.getString(cursor.getColumnIndexOrThrow(COL_RESERVATION_TABLE));
+                    int id = cursor.getInt(cursor.getColumnIndexOrThrow(COL_RESERVATION_ID));
+                    
+                    int numberOfGuests = 0;
+                    try {
+                        int columnIndex = cursor.getColumnIndex(COL_RESERVATION_GUESTS);
+                        if (columnIndex >= 0 && !cursor.isNull(columnIndex)) {
+                            numberOfGuests = cursor.getInt(columnIndex);
+                        }
+                    } catch (Exception e) {
+                        // Column might not exist
+                    }
+                    
+                    String specialRequest = "";
+                    try {
+                        int columnIndex = cursor.getColumnIndex(COL_RESERVATION_SPECIAL_REQUEST);
+                        if (columnIndex >= 0 && !cursor.isNull(columnIndex)) {
+                            specialRequest = cursor.getString(columnIndex);
+                            if (specialRequest == null) specialRequest = "";
+                        }
+                    } catch (Exception e) {
+                        // Column might not exist
+                    }
+                    
+                    Reservation reservation = new Reservation(date, time, reservationName, table, numberOfGuests, specialRequest);
+                    reservation.id = id;
+                    reservations.add(reservation);
+                }
             } while (cursor.moveToNext());
         }
         cursor.close();

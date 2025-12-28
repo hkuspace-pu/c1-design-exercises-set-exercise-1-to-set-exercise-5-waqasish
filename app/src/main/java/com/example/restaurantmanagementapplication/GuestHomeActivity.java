@@ -49,6 +49,9 @@ public class GuestHomeActivity extends AppCompatActivity implements GuestReserva
         btnMenu = findViewById(R.id.btnMenu);
 
         rvGuestReservations.setLayoutManager(new LinearLayoutManager(this));
+        // Initialize adapter with empty list to ensure it's ready
+        adapter = new GuestReservationTableAdapter(new ArrayList<>(), this);
+        rvGuestReservations.setAdapter(adapter);
         loadReservations();
 
         btnMakeReservation.setOnClickListener(new View.OnClickListener() {
@@ -107,13 +110,15 @@ public class GuestHomeActivity extends AppCompatActivity implements GuestReserva
     }
 
     private void loadReservations() {
-        if (userName == null) {
+        if (userEmail == null) {
             tvEmptyReservations.setVisibility(View.VISIBLE);
             rvGuestReservations.setVisibility(View.GONE);
             return;
         }
 
-        ArrayList<Reservation> reservations = dbHelper.getReservationsByCustomerName(userName);
+        // Get reservations by user email (to find all reservations for logged-in user)
+        // The name displayed will be whatever name was entered during reservation
+        ArrayList<Reservation> reservations = dbHelper.getReservationsByUserEmail(userEmail);
         
         if (reservations.isEmpty()) {
             tvEmptyReservations.setVisibility(View.VISIBLE);
@@ -121,9 +126,9 @@ public class GuestHomeActivity extends AppCompatActivity implements GuestReserva
         } else {
             tvEmptyReservations.setVisibility(View.GONE);
             rvGuestReservations.setVisibility(View.VISIBLE);
-            adapter = new GuestReservationTableAdapter(reservations, this);
-            rvGuestReservations.setAdapter(adapter);
         }
+        // Always update the adapter to ensure it reflects current data
+        adapter.updateList(reservations);
     }
 
     @Override

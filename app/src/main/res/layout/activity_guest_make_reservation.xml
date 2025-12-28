@@ -93,6 +93,23 @@
                     android:layout_height="wrap_content" />
             </com.google.android.material.textfield.TextInputLayout>
 
+            <!-- Name -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/tilName"
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:hintTextColor="#FF6B35"
+                app:boxStrokeColor="#FF6B35"
+                android:hint="NAME (ON WHOSE NAME BOOKING)">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etName"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
+            </com.google.android.material.textfield.TextInputLayout>
+
             <!-- Number of Guests -->
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/tilNumberOfGuests"
