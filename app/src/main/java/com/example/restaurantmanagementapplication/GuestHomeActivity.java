@@ -100,8 +100,11 @@ public class GuestHomeActivity extends AppCompatActivity implements GuestReserva
                 return true;
             }
             if (id == R.id.nav_setting) {
-                // TODO: Navigate to Settings screen
-                Toast.makeText(this, "Settings - Coming soon", Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(this, GuestSettingsActivity.class);
+                intent.putExtra("user_email", userEmail);
+                startActivity(intent);
+                overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+                finish();
                 return true;
             }
 

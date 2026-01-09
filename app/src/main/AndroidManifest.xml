@@ -38,6 +38,8 @@
         <activity android:name=".GuestHomeActivity" />
         <activity android:name=".GuestFoodMenuActivity" />
         <activity android:name=".GuestMakeReservationActivity" />
+        <activity android:name=".GuestSettingsActivity" />
+        <activity android:name=".ReservationConfirmationActivity" />
 
         <!-- Staff Dashboard (Reservations & Home) -->
         <activity

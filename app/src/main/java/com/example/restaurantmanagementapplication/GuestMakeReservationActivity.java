@@ -118,8 +118,8 @@ public class GuestMakeReservationActivity extends AppCompatActivity implements T
                 rvTables.post(() -> updateAvailableTables());
             }
         } else {
-            // Pre-fill name with logged-in user's name for new reservations
-            etName.setText(userName);
+            // Leave name field empty for new reservations - user will type their own name
+            etName.setText("");
         }
 
         // Bottom Navigation
@@ -149,7 +149,11 @@ public class GuestMakeReservationActivity extends AppCompatActivity implements T
                 return true;
             }
             if (id == R.id.nav_setting) {
-                android.widget.Toast.makeText(this, "Settings - Coming soon", android.widget.Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(this, GuestSettingsActivity.class);
+                intent.putExtra("user_email", userEmail);
+                startActivity(intent);
+                overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+                finish();
                 return true;
             }
 
@@ -320,14 +324,25 @@ public class GuestMakeReservationActivity extends AppCompatActivity implements T
                 long reservationId = dbHelper.addReservation(date, time, name, tableStr, numberOfGuests, specialRequest, userEmail);
                 success = reservationId > 0;
                 if (success) {
-                    Toast.makeText(this, "Reservation made successfully!", Toast.LENGTH_SHORT).show();
+                    // Navigate to confirmation screen with reservation details
+                    Intent intent = new Intent(this, ReservationConfirmationActivity.class);
+                    intent.putExtra("user_email", userEmail);
+                    intent.putExtra("reservation_name", name);
+                    intent.putExtra("reservation_date", date);
+                    intent.putExtra("reservation_time", time);
+                    intent.putExtra("reservation_table", tableStr);
+                    intent.putExtra("reservation_guests", numberOfGuests);
+                    intent.putExtra("reservation_special_request", specialRequest);
+                    startActivity(intent);
+                    overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+                    finish();
                 } else {
                     Toast.makeText(this, "Failed to make reservation", Toast.LENGTH_SHORT).show();
                 }
             }
 
-            if (success) {
-                // Navigate back to manage reservations
+            if (success && isEditMode) {
+                // For edit mode, navigate back to manage reservations
                 Intent intent = new Intent(this, GuestHomeActivity.class);
                 intent.putExtra("user_email", userEmail);
                 startActivity(intent);

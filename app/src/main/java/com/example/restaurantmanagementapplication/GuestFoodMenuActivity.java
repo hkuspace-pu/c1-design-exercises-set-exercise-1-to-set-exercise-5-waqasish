@@ -62,8 +62,13 @@ public class GuestFoodMenuActivity extends AppCompatActivity {
                 return true;
             }
             if (id == R.id.nav_setting) {
-                // TODO: Navigate to Settings screen
-                android.widget.Toast.makeText(this, "Settings - Coming soon", android.widget.Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(this, GuestSettingsActivity.class);
+                if (userEmail != null) {
+                    intent.putExtra("user_email", userEmail);
+                }
+                startActivity(intent);
+                overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+                finish();
                 return true;
             }
 
